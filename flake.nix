@@ -45,10 +45,6 @@
           nil
           nixpkgs-fmt
         ];
-        shellHook = ''
-          export PROMPT_COMMAND=""
-          export PS1='$(tput bold)(nix)$(tput sgr0) \w ⚡ '
-        '';
       };
       formatter = pkgs.nixpkgs-fmt;
     });

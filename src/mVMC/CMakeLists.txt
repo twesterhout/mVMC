@@ -14,6 +14,7 @@ add_definitions(-DMEXP=19937)
 
 set(SOURCES_vmcmain
         vmcmain.c physcal_lanczos.c splitloop.c 
+        extract_wavefunction.c
  )
 
 set(SOURCES_sfmt
