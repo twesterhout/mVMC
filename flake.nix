@@ -41,7 +41,7 @@
           # Development tools
           clang-tools
           clang
-          llvmPackages.openmp
+          # llvmPackages.openmp
           nil
           nixpkgs-fmt
         ];

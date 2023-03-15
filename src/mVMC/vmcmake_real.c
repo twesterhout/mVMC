@@ -43,9 +43,9 @@ which follows "The BSD 3-Clause License".
 #include "../pfupdates/pf_interface.h"
 #endif
 
-inline void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int const eleNum[],
-                                       int const eleProjCnt[], int const qpStart, int const qpEnd, MPI_Comm comm,
-                                       double const ip) {
+void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int const eleNum[],
+                                int const eleProjCnt[], int const qpStart, int const qpEnd, MPI_Comm comm,
+                                double const ip) {
   FILE* globalOutputFile = WaveFunctionOutputFile();
   if (globalOutputFile == NULL) { return; }
 
@@ -81,7 +81,12 @@ inline void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], i
       fprintf(globalOutputFile, "%d", eleNum[position + spin * Nsite]);
     }
   }
-  fprintf(globalOutputFile, "]\t%f\n", ip);
+  fprintf(globalOutputFile, "]\t[");
+  for (int proj = 0; proj < NProj; ++proj) {
+    if (proj != 0) { fprintf(globalOutputFile, ","); }
+    fprintf(globalOutputFile, "%d", eleProjCnt[proj]);
+  }
+  fprintf(globalOutputFile, "]\t%d\t%d\t%f\n", qpStart, qpEnd, ip);
 }
 
 void VMCMakeSample_real(MPI_Comm comm) {
