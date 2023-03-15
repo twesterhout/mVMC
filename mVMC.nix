@@ -2,7 +2,7 @@
 , gcc
 , gfortran
 , mpich
-, blis
+, blas
 , lapack
 , cmake
 , ninja
@@ -22,8 +22,8 @@ stdenv.mkDerivation {
 
   buildInputs = [
     mpich
+    blas
     lapack
-    blis
   ];
 
   cmakeArgs = [ "-GNinja" "-DPFAFFIAN_BLOCKED:BOOL=OFF" "-DDocument:BOOL=OFF" ];

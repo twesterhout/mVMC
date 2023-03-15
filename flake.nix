@@ -29,7 +29,7 @@
         buildInputs = with pkgs; [
           mpich
           lapack
-          blis
+          blas
         ];
         nativeBuildInputs = with pkgs; [
           # Build tools
