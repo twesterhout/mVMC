@@ -49,39 +49,39 @@ inline void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], i
   FILE* globalOutputFile = WaveFunctionOutputFile();
   if (globalOutputFile == NULL) { return; }
 
-  for (int position = 0; position < Nsite; ++position) {
-    if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
-      fprintf(globalOutputFile, "%d", (eleCfg[position] == -1));
-    }
-    else {
-      fprintf(stderr, "RecordComputedWaveFunction: hm...?\n");
-      MPI_Abort(comm, -1);
+  // for (int position = 0; position < Nsite; ++position) {
+  //   if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
+  //     fprintf(globalOutputFile, "%d", (eleCfg[position] == -1));
+  //   }
+  //   else {
+  //     fprintf(stderr, "RecordComputedWaveFunction: hm...?\n");
+  //     MPI_Abort(comm, -1);
+  //   }
+  // }
+  // fprintf(globalOutputFile, "\t%f\n", ip);
+
+  fprintf(globalOutputFile, "[");
+  for (int spin = 0; spin < 2; ++spin) {
+    for (int position = 0; position < Nsite; ++position) {
+      if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
+      fprintf(globalOutputFile, "%d", eleCfg[position + spin * Nsite]);
     }
   }
-  fprintf(globalOutputFile, "\t%f\n", ip);
-
-  // fprintf(globalOutputFile, "[");
-  // for (int spin = 0; spin < 2; ++spin) {
-  //   for (int position = 0; position < Nsite; ++position) {
-  //     if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
-  //     fprintf(globalOutputFile, "%d", eleCfg[position + spin * Nsite]);
-  //   }
-  // }
-  // fprintf(globalOutputFile, "]\t[");
-  // for (int spin = 0; spin < 2; ++spin) {
-  //   for (int index = 0; index < Ne; ++index) {
-  //     if (spin != 0 || index != 0) { fprintf(globalOutputFile, ","); }
-  //     fprintf(globalOutputFile, "%d", eleIdx[index + spin * Ne]);
-  //   }
-  // }
-  // fprintf(globalOutputFile, "]\t[");
-  // for (int spin = 0; spin < 2; ++spin) {
-  //   for (int position = 0; position < Nsite; ++position) {
-  //     if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
-  //     fprintf(globalOutputFile, "%d", eleNum[position + spin * Nsite]);
-  //   }
-  // }
-  // fprintf(globalOutputFile, "]\t%f\n", ip);
+  fprintf(globalOutputFile, "]\t[");
+  for (int spin = 0; spin < 2; ++spin) {
+    for (int index = 0; index < Ne; ++index) {
+      if (spin != 0 || index != 0) { fprintf(globalOutputFile, ","); }
+      fprintf(globalOutputFile, "%d", eleIdx[index + spin * Ne]);
+    }
+  }
+  fprintf(globalOutputFile, "]\t[");
+  for (int spin = 0; spin < 2; ++spin) {
+    for (int position = 0; position < Nsite; ++position) {
+      if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
+      fprintf(globalOutputFile, "%d", eleNum[position + spin * Nsite]);
+    }
+  }
+  fprintf(globalOutputFile, "]\t%f\n", ip);
 }
 
 void VMCMakeSample_real(MPI_Comm comm) {
