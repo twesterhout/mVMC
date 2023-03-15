@@ -86,7 +86,8 @@ void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int cons
     if (proj != 0) { fprintf(globalOutputFile, ","); }
     fprintf(globalOutputFile, "%d", eleProjCnt[proj]);
   }
-  fprintf(globalOutputFile, "]\t%d\t%d\t%f\n", qpStart, qpEnd, ip);
+  fprintf(globalOutputFile, "]\t%d\t%d\t%f", qpStart, qpEnd, ip);
+  fprintf(globalOutputFile, "\n");
 }
 
 void VMCMakeSample_real(MPI_Comm comm) {
@@ -223,7 +224,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(pfMNew_real, qpStart, qpEnd, comm));
         StopTimer(62);
 
         /* Metroplis */
@@ -299,7 +300,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* calculate inner product <phi|L|x> */
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(pfMNew_real, qpStart, qpEnd, comm));
 
         StopTimer(67);
 
@@ -554,7 +555,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
         //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(pfMNew_real, qpStart, qpEnd, comm));
         StopTimer(62);
 
         /* Metroplis */
@@ -619,7 +620,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
         /* calculate inner product <phi|L|x> */
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(pfMNew_real, qpStart, qpEnd, comm));
 
         StopTimer(67);
 
