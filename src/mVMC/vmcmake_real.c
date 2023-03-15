@@ -148,7 +148,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
   // printf("DEBUG: maker1: PfM=%lf\n",creal(PfM[0]));
   logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
   RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                             CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                             CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
 
   if (!isfinite(logIpOld)) {
     if (rank == 0) fprintf(stderr, "waring: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
@@ -170,7 +170,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
     //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
     logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
     RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                               CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                               CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
     BurnFlag = 0;
   }
   StopTimer(30);
@@ -218,7 +218,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
         StopTimer(62);
 
         /* Metroplis */
@@ -294,7 +294,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* calculate inner product <phi|L|x> */
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
 
         StopTimer(67);
 
@@ -349,7 +349,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         //printf("DEBUG: maker3: PfM=%lf\n",creal(PfM[0]));
         logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
         StopTimer(34);
         nAccept = 0;
       }
@@ -487,7 +487,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
   // printf("DEBUG: maker1: PfM=%lf\n",creal(PfM[0]));
   logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
   RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                             CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                             CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
   if (!isfinite(logIpOld)) {
     if (rank == 0) fprintf(stderr, "waring: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
     //    makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,
@@ -499,7 +499,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
     //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
     logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
     RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                               CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                               CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
     BurnFlag = 0;
   }
   StopTimer(30);
@@ -549,7 +549,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
         //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
         StopTimer(62);
 
         /* Metroplis */
@@ -614,7 +614,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
         /* calculate inner product <phi|L|x> */
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
 
         StopTimer(67);
 
@@ -647,7 +647,7 @@ void VMC_BF_MakeSample_real(MPI_Comm comm) {
         CalculateMAll_BF_real(TmpEleIdx, qpStart, qpEnd);
         logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
         RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
-                                   CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm));
+                                   CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
         StopTimer(34);
         nAccept = 0;
       }
