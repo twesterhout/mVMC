@@ -72,11 +72,11 @@ int const permutation_sign(const int* permutation, const int length, MPI_Comm co
         current = index;
         while (!elements_seen[current]) {
             elements_seen[current] = 1;
+            current = permutation[current];
             if (current < 0 || current >= length) {
                 fprintf(stderr, "Incorrect permutation: out of bounds");
                     MPI_Abort(comm, -1);
             }
-            current = permutation[current];
         }
     }
     free(elements_seen);
