@@ -38,96 +38,77 @@ which follows "The BSD 3-Clause License".
 #include "vmcmake.h"
 #include "extract_wavefunction.h"
 
+#include <stdbool.h>
+#include <string.h>
+
 #ifdef _pf_block_update
 // Block-update extension.
 #include "../pfupdates/pf_interface.h"
 #endif
 
 // BASED ON: https://stackoverflow.com/a/1504565/3025981
-int const permutation_sign(const int* permutation, const int length, MPI_Comm comm) {
-    char* elements_seen;
-    int cycles = 0;
-    int current;
-
-    elements_seen = (char *) calloc(length, sizeof(char));
-    if (elements_seen == NULL) {
-      fprintf(stderr, "cannot allocate memory in permutation_sign\n");
+int GetPermutationSign(const int permutation[], const int length, MPI_Comm comm) {
+    bool elements_seen[64];
+    if (length > 64) {
+      fprintf(stderr, "GetPermutationSign: too many electrons: %d; "
+                      "at most 64 electrons are supported at the moment\n",
+                      length);
       MPI_Abort(comm, -1);
     }
+    memset(elements_seen, false, sizeof(elements_seen) / sizeof(bool));
 
-    // DEBUG ONLY
-    for (int index = 0; index < length; index++) {
-        if (elements_seen[index] != 0) {
-          fprintf(stderr, "calloc did not initialize memory with zeroes?\n");
+    int cycles = 0;
+    for (int index = 0; index < length; ++index) {
+      if (elements_seen[index]) { continue; } 
+
+      ++cycles;
+      int current = index;
+      while (!elements_seen[current]) {
+        elements_seen[current] = true;
+        current = permutation[current];
+        if (current < 0 || current >= length) {
+          fprintf(stderr, "Invalid permutation: [");
+          for (int k = 0; k < length; ++k) {
+            if (k != 0) { fprintf(stderr, ", "); }
+            fprintf(stderr, "%d", permutation[k]);
+          }
+          fprintf(stderr, "]\n");
           MPI_Abort(comm, -1);
         }
+      }
     }
-    // END DEBUG ONLY
-    
-    for (int index = 0; index < length; index++) {
-        if (elements_seen[index]) {
-            continue;
-        } 
-        cycles++;
-        current = index;
-        while (!elements_seen[current]) {
-            elements_seen[current] = 1;
-            current = permutation[current];
-            if (current < 0 || current >= length) {
-                fprintf(stderr, "Incorrect permutation: out of bounds");
-                    MPI_Abort(comm, -1);
-            }
-        }
-    }
-    free(elements_seen);
+
     return 1 - 2 * ((length - cycles + 1) % 2);
 }
 // END BASED
 
 void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int const eleNum[],
-                                int const eleProjCnt[], int const qpStart, int const qpEnd, MPI_Comm comm,
-                                double const ip) {
+                                int const eleProjCnt[], int const qpStart, int const qpEnd,
+                                MPI_Comm comm, double const ip) {
   FILE* globalOutputFile = WaveFunctionOutputFile();
   if (globalOutputFile == NULL) { return; }
 
+  // We're going to store the spin configuration in a uint64_t,
+  // so check that the 64 bits is enough
+  if (Nsite > 64) {
+    fprintf(stderr, "RecordComputedWaveFunction: Lattice too big: %d; "
+                    "at most 64 sites are supported at the moment\n",
+                    Nsite);
+    MPI_Abort(comm, -1);
+  }
+
+  uint64_t spin_conf = 0;
   for (int position = 0; position < Nsite; ++position) {
     if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
-      fprintf(globalOutputFile, "%d", (eleCfg[position] == -1));
+      spin_conf |= ((uint64_t)(eleCfg[position] == -1)) << position;
     }
     else {
       fprintf(stderr, "RecordComputedWaveFunction: hm...?\n");
       MPI_Abort(comm, -1);
     }
   }
-  fprintf(globalOutputFile, "\t[");
-  for (int spin = 0; spin < 2; ++spin) {
-    for (int position = 0; position < Nsite; ++position) {
-      if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
-      fprintf(globalOutputFile, "%d", eleCfg[position + spin * Nsite]);
-    }
-  }
-  fprintf(globalOutputFile, "]\t[");
-  for (int spin = 0; spin < 2; ++spin) {
-    for (int index = 0; index < Ne; ++index) {
-      if (spin != 0 || index != 0) { fprintf(globalOutputFile, ","); }
-      fprintf(globalOutputFile, "%d", eleIdx[index + spin * Ne]);
-    }
-  }
-  fprintf(globalOutputFile, "]\t[");
-  for (int spin = 0; spin < 2; ++spin) {
-    for (int position = 0; position < Nsite; ++position) {
-      if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
-      fprintf(globalOutputFile, "%d", eleNum[position + spin * Nsite]);
-    }
-  }
-  fprintf(globalOutputFile, "]\t[");
-  for (int proj = 0; proj < NProj; ++proj) {
-    if (proj != 0) { fprintf(globalOutputFile, ","); }
-    fprintf(globalOutputFile, "%d", eleProjCnt[proj]);
-  }
 
-  fprintf(globalOutputFile, "]\t%d\t%d\t%f", qpStart, qpEnd, ip * permutation_sign(eleIdx, Ne * 2, comm));
-  fprintf(globalOutputFile, "\n");
+  fprintf(globalOutputFile, "%zu\t%f\n", spin_conf, ip * GetPermutationSign(eleIdx, 2 * Ne, comm));
 }
 
 void VMCMakeSample_real(MPI_Comm comm) {
