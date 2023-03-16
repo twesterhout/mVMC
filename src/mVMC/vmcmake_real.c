@@ -43,24 +43,63 @@ which follows "The BSD 3-Clause License".
 #include "../pfupdates/pf_interface.h"
 #endif
 
+// BASED ON: https://stackoverflow.com/a/1504565/3025981
+int const permutation_sign(const int* permutation, const int length, MPI_Comm comm) {
+    char* elements_seen;
+    int cycles = 0;
+    int current;
+
+    elements_seen = (char *) calloc(length, sizeof(char));
+    if (elements_seen == NULL) {
+      fprintf(stderr, "cannot allocate memory in permutation_sign\n");
+      MPI_Abort(comm, -1);
+    }
+
+    // DEBUG ONLY
+    for (int index = 0; index < length; index++) {
+        if (elements_seen[index] != 0) {
+          fprintf(stderr, "calloc did not initialize memory with zeroes?\n");
+          MPI_Abort(comm, -1);
+        }
+    }
+    // END DEBUG ONLY
+    
+    for (int index = 0; index < length; index++) {
+        if (elements_seen[index]) {
+            continue;
+        } 
+        cycles++;
+        current = index;
+        while (!elements_seen[current]) {
+            elements_seen[current] = 1;
+            if (current < 0 || current >= length) {
+                fprintf(stderr, "Incorrect permutation: out of bounds");
+                    MPI_Abort(comm, -1);
+            }
+            current = permutation[current];
+        }
+    }
+    free(elements_seen);
+    return 1 - 2 * ((length - cycles + 1) % 2);
+}
+// END BASED
+
 void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int const eleNum[],
                                 int const eleProjCnt[], int const qpStart, int const qpEnd, MPI_Comm comm,
                                 double const ip) {
   FILE* globalOutputFile = WaveFunctionOutputFile();
   if (globalOutputFile == NULL) { return; }
 
-  // for (int position = 0; position < Nsite; ++position) {
-  //   if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
-  //     fprintf(globalOutputFile, "%d", (eleCfg[position] == -1));
-  //   }
-  //   else {
-  //     fprintf(stderr, "RecordComputedWaveFunction: hm...?\n");
-  //     MPI_Abort(comm, -1);
-  //   }
-  // }
-  // fprintf(globalOutputFile, "\t%f\n", ip);
-
-  fprintf(globalOutputFile, "[");
+  for (int position = 0; position < Nsite; ++position) {
+    if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
+      fprintf(globalOutputFile, "%d", (eleCfg[position] == -1));
+    }
+    else {
+      fprintf(stderr, "RecordComputedWaveFunction: hm...?\n");
+      MPI_Abort(comm, -1);
+    }
+  }
+  fprintf(globalOutputFile, "\t[");
   for (int spin = 0; spin < 2; ++spin) {
     for (int position = 0; position < Nsite; ++position) {
       if (spin != 0 || position != 0) { fprintf(globalOutputFile, ","); }
@@ -86,7 +125,8 @@ void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int cons
     if (proj != 0) { fprintf(globalOutputFile, ","); }
     fprintf(globalOutputFile, "%d", eleProjCnt[proj]);
   }
-  fprintf(globalOutputFile, "]\t%d\t%d\t%f", qpStart, qpEnd, ip);
+
+  fprintf(globalOutputFile, "]\t%d\t%d\t%f", qpStart, qpEnd, ip * permutation_sign(eleIdx, Ne * 2, comm));
   fprintf(globalOutputFile, "\n");
 }
 
