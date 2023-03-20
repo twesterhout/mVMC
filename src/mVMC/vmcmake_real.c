@@ -189,6 +189,8 @@ void swap_spins(int ri, int rj, int *eleIdx, int *eleCfg, int *eleNum, int *eleP
   UpdateMAllTwo_real(mi, s, mj, t, ri, rj, eleIdx, qpStart, qpEnd);
 }
 
+// Walking bit algorithm
+// BASED ON: https://stackoverflow.com/a/36466454/3025981
 void walkRight(int n, int k, int pos, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, 
                int qpStart, int qpEnd, MPI_Comm comm) {
   # ifdef _DEBUG
@@ -236,6 +238,7 @@ void walkLeft(int n, int k, int pos, int *eleIdx, int *eleCfg, int *eleNum, int 
     }
   }
 }
+// END BASED
 
 void VMCMakeSample_real(MPI_Comm comm) {
   InitWaveFunctionExtraction(comm);
