@@ -25,17 +25,17 @@ which follows "The BSD 3-Clause License".
  *-------------------------------------------------------------
  * by Satoshi Morita
  *-------------------------------------------------------------*/
-#include "vmcmake_real.h"
+#include "include/vmcmake_real.h"
 #ifndef _SRC_VMCMAKE_REAL
 #define _SRC_VMCMAKE_REAL
 
-#include "global.h"
-#include "slater.h"
-#include "matrix.h"
-#include "pfupdate_real.h"
-#include "qp_real.h"
-#include "splitloop.h"
-#include "vmcmake.h"
+#include "include/global.h"
+#include "include/slater.h"
+#include "include/matrix.h"
+#include "include/pfupdate_real.h"
+#include "include/qp_real.h"
+#include "include/splitloop.h"
+#include "include/vmcmake.h"
 #include "extract_wavefunction.h"
 
 #include <stdbool.h>
@@ -45,6 +45,14 @@ which follows "The BSD 3-Clause License".
 // Block-update extension.
 #include "../pfupdates/pf_interface.h"
 #endif
+
+
+int makeInitialSample_spin_left_ones(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                           const int qpStart, const int qpEnd, MPI_Comm comm);
+
+void walkRight(int n, int k, int pos, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, int qpStart, int qpEnd, MPI_Comm comm);
+void walkLeft(int n, int k, int pos, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, int qpStart, int qpEnd, MPI_Comm comm);
+
 
 #define _DEBUG
 
@@ -84,6 +92,7 @@ int GetPermutationSign(const int permutation[], const int length, MPI_Comm comm)
 }
 // END BASED
 
+
 void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int const eleNum[],
                                 int const eleProjCnt[], int const qpStart, int const qpEnd,
                                 MPI_Comm comm, double const ip) {
@@ -100,15 +109,6 @@ void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int cons
   }
 
   uint64_t spin_conf = 0;
-  for (int position = 0; position < Nsite; ++position) {
-    if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
-      spin_conf |= ((uint64_t)(eleCfg[position] == -1)) << position;
-    }
-    else {
-      fprintf(stderr, "RecordComputedWaveFunction: hm...?\n");
-      MPI_Abort(comm, -1);
-    }
-  }
 
   # ifdef _DEBUG
   fprintf(globalOutputFile, "\t[");
@@ -137,9 +137,104 @@ void RecordComputedWaveFunction(int const eleIdx[], int const eleCfg[], int cons
     if (proj != 0) { fprintf(globalOutputFile, ","); }
     fprintf(globalOutputFile, "%d", eleProjCnt[proj]);
   }
+  fprintf(globalOutputFile, "]\t");
+
+  fprintf(globalOutputFile, "%i\t%i\t", qpStart, qpEnd);
   # endif
 
+  for (int position = 0; position < Nsite; ++position) {
+    if (eleCfg[position] != -1 || eleCfg[position + Nsite] != -1) {
+      spin_conf |= ((uint64_t)(eleCfg[position] == -1)) << position;
+    }
+    else {
+      fprintf(stderr, "RecordComputedWaveFunction: incorrect spin configuration?\n");
+      MPI_Abort(comm, -1);
+    }
+  }
+
+
   fprintf(globalOutputFile, "%zu\t%f\n", spin_conf, ip * GetPermutationSign(eleIdx, 2 * Ne, comm));
+}
+
+void swap_spins(int ri, int rj, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                int qpStart, int qpEnd, MPI_Comm comm
+                //, int *projCntNew
+                ) {
+  /* The mi-th electron with spin s hops to rj */
+
+  int s = eleCfg[ri] > -1 ? 0 : 1;
+  int t = 1 - s;
+  int mi = eleCfg[ri + s * Nsite];
+  int mj = eleCfg[rj + t * Nsite];
+  double pfMNew_real[NQPFull];
+  int projCntNew[NProj];
+  
+  # ifdef _DEBUG
+  fprintf(stderr, "swap_spins: ri = %d, rj = %d, s = %d, t = %d, mi = %d, mj = %d\n", ri, rj, s, t, mi, mj);
+  # endif
+
+  updateEleConfig(mi, ri, rj, s, eleIdx, eleCfg, eleNum);
+  UpdateProjCnt(ri, rj, s, projCntNew, eleProjCnt, eleNum);
+  /* The mj-th electron with spin t hops to ri */
+  updateEleConfig(mj, rj, ri, t, eleIdx, eleCfg, eleNum);
+  UpdateProjCnt(rj, ri, t, projCntNew, projCntNew, eleNum);
+
+  CalculateNewPfMTwo2_real(mi, s, mj, t, pfMNew_real, eleIdx, qpStart, qpEnd);
+  
+  CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
+  
+  RecordComputedWaveFunction(eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm,
+                             CalculateIP_real(pfMNew_real, qpStart, qpEnd, comm));
+
+  UpdateMAllTwo_real(mi, s, mj, t, ri, rj, eleIdx, qpStart, qpEnd);
+}
+
+void walkRight(int n, int k, int pos, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, 
+               int qpStart, int qpEnd, MPI_Comm comm) {
+  # ifdef _DEBUG
+  fprintf(stderr, "walkRight: n = %d, k = %d, pos = %d\n", n, k, pos);
+  # endif
+
+  if (k == 1) {
+    for(int p = pos + 1; p < pos + n; ++p) {
+      swap_spins(p, p - 1, eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm);
+    }
+  } else {
+    for(int i = 1; i <= n - k; i++) {
+      if (i % 2 == 1) {
+        walkRight(n - i, k - 1, pos + i, eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm);
+      } else {
+        walkLeft(n - i, k - 1, pos + i, eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm);
+      }
+      swap_spins(pos + i - 1, pos + i + (i % 2 ? 0 : k - 1), eleIdx, eleCfg, eleNum, eleProjCnt, 
+                 qpStart, qpEnd, comm);
+    }
+  }
+}
+
+
+void walkLeft(int n, int k, int pos, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+              int qpStart, int qpEnd, MPI_Comm comm) {
+
+  # ifdef _DEBUG
+  fprintf(stderr, "walkLeft: n = %d, k = %d, pos = %d\n", n, k, pos);
+  # endif
+
+  if (k == 1) {
+    for(int p = pos + n - 1; p > pos; --p) {
+      swap_spins(p, p - 1, eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm);
+    }
+  } else {
+    for(int i = 1; i <= n - k; ++i) {
+      if (i % 2 == 0) {
+        walkRight(n - i, k - 1, pos, eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm);
+      } else {
+        walkLeft(n - i, k - 1, pos, eleIdx, eleCfg, eleNum, eleProjCnt, qpStart, qpEnd, comm);
+      }
+      swap_spins(pos + n - i - (i % 2 ? 1 : k), pos + n - i, eleIdx, eleCfg, eleNum, eleProjCnt, 
+                 qpStart, qpEnd, comm);
+    }
+  }
 }
 
 void VMCMakeSample_real(MPI_Comm comm) {
@@ -214,8 +309,10 @@ void VMCMakeSample_real(MPI_Comm comm) {
   RecordComputedWaveFunction(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, qpStart, qpEnd, comm,
                              CalculateIP_real(PfM_real, qpStart, qpEnd, comm));
   if (WALK) {
-    // stop execution
-    MPI_Abort(comm, 1);
+    walkRight(Nsite, Ne, 0, TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
+              qpStart, qpEnd, comm);
+    // Now stop execution
+    MPI_Abort(comm, 0);
   }
   
   if (!isfinite(logIpOld)) {
@@ -532,18 +629,18 @@ int makeInitialSample_spin_left_ones(int *eleIdx, int *eleCfg, int *eleNum, int 
 
   for (ri = 0; ri < Nsite; ++ri) {
     if (LocSpn[ri] != 1) {
-      fpintf(stderr, "error: makeInitialSample_spin_left_ones only works if every site has local spins, so LocSpn[ri] == 1\n");
-      fpintf(stderr, "we have: LocSpn[%d] = %d\n", ri, LocSpn[ri]);
+      fprintf(stderr, "error: makeInitialSample_spin_left_ones only works if every site has local spins, so LocSpn[ri] == 1\n");
+      fprintf(stderr, "we have: LocSpn[%d] = %d\n", ri, LocSpn[ri]);
       MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
   }
 
 //#pragma omp parallel for default(shared) private(rsi)
-  for (ei = 0; ei < Ne; ++ei) {
+  for (int ei = 0; ei < Ne; ++ei) {
     eleCfg[ei] = ei;
     eleCfg[ei + Ne] = -1;
     eleCfg[ei + Nsite + Ne] = ei;
-    eleCfg[ei + Nsite] = -1
+    eleCfg[ei + Nsite] = -1;
 
     eleIdx[ei] = ei;
     eleIdx[ei + Ne] = ei + Ne;
@@ -553,6 +650,8 @@ int makeInitialSample_spin_left_ones(int *eleIdx, int *eleCfg, int *eleNum, int 
     eleNum[ei + Nsite + Ne] = 1;
     eleNum[ei + Nsite] = 0;
   }
+  MakeProjCnt(eleProjCnt,eleNum);
+
   return 0;
 }
 
