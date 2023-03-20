@@ -2,8 +2,10 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 FILE* globalOutputFile = NULL;
+bool shouldWalk = false;
 
 void InitWaveFunctionExtraction(MPI_Comm comm) {
   char const* filename = getenv("EXTRACT_WAVEFUNCTION");
@@ -24,6 +26,10 @@ void InitWaveFunctionExtraction(MPI_Comm comm) {
                     "InitWaveFunctionExtraction: all wave function evaluations will be written to it\n",
                     filename);
     globalOutputFile = fopen(filename, "a");
+
+    if (getenv("WALK") != NULL) {
+      shouldWalk = true;
+    }
   }
 }
 
@@ -33,9 +39,14 @@ void ExitWaveFunctionExtraction(MPI_Comm comm) {
     fflush(globalOutputFile);
     fclose(globalOutputFile);
     globalOutputFile = NULL;
+    shouldWalk = false;
   }
 }
 
 FILE* WaveFunctionOutputFile(void) {
   return globalOutputFile;
+}
+
+bool GetShouldWalk(void) {
+  return shouldWalk;
 }
