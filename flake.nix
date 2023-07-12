@@ -2,7 +2,7 @@
   description = "A numerical solver package for a wide range of quantum lattice models based on many-variable Variational Monte Carlo method";
 
   nixConfig = {
-    extra-experimental-features = "nix-command flakes";
+    # extra-experimental-features = "nix-command flakes";
     # extra-substituters = "https://halide-haskell.cachix.org";
     # extra-trusted-public-keys = "halide-haskell.cachix.org-1:cFPqtShCsH4aNjn2q4PHb39Omtd/FWRhrkTBcSrtNKQ=";
   };
@@ -18,18 +18,26 @@
 
   outputs = inputs: inputs.flake-utils.lib.eachDefaultSystem (system:
     let
-      inherit (inputs.nixpkgs) lib;
       pkgs = import inputs.nixpkgs { inherit system; };
 
       mVMC = pkgs.callPackage ./mVMC.nix { };
+
+      singularity = pkgs.singularity-tools.buildImage {
+        name = "mVMC";
+        contents = [ mVMC ];
+        diskSize = 10240;
+        memSize = 5120;
+      };
     in
     {
-      packages.default = mVMC;
+      packages = {
+        default = mVMC;
+        inherit singularity;
+      };
       devShells.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           mpich
-          lapack
-          blas
+          openblas
         ];
         nativeBuildInputs = with pkgs; [
           # Build tools
